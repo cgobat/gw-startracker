@@ -357,7 +357,7 @@ if read_failed or str(parameters) != stored_parameters:
 
   # insert star patterns into pattern catalog hash table
   print("inserting patterns into catalog...")
-  pattern_catalog = np.zeros( int(num_patterns_found / catalog_fill_factor, pattern_size), dtype=np.uint16)
+  pattern_catalog = np.zeros( (int(num_patterns_found / catalog_fill_factor), pattern_size), dtype=np.uint16)
   for pattern in pattern_list:
     # retrieve the vectors of the stars in the pattern
     vectors = np.array([star_table[star_id] for star_id in pattern])
@@ -476,7 +476,7 @@ def tetra(image_file_name):
     # correct the star center position using the calculated center of mass to create a centroid
     star_centroids.append((y + y_center, x + x_center))
   # sort star centroids from brightest to dimmest by comparing the total masses of their window pixels
-  star_centroids.sort(key=lambda yx:-np.sum(normalized_image[yx[0]-window_radius:yx[0]+window_radius+1, yx[1]-window_radius:yx[1]+window_radius+1]))
+  star_centroids.sort(key=lambda yx:-np.sum(normalized_image[ int(yx[0]-window_radius) : int(yx[0]+window_radius+1), int(yx[1]-window_radius) : int(yx[1]+window_radius+1) ]))
 
   # compute list of (i,j,k) vectors given list of (y,x) star centroids and
   # an estimate of the image's field-of-view in the x dimension
