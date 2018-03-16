@@ -1,5 +1,8 @@
 pattern_catalog.npy
 tetra/pattern_catalog.npy
+pattern_catalog
+pattern_catalog.*
+
 
 # Created by https://www.gitignore.io/api/python
 

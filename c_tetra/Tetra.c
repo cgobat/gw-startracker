@@ -1,3 +1,5 @@
+#define _FILE_OFFSET_BITS 64 // Linux Compatibility
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -496,7 +498,7 @@ static int increment_offset(FILE *pattern_catalog,
     /* If reading causes a crash, it can be fixed by taking a max */
     /* of the number of read Patterns with the sum of the catalog */
     /* size and the maximum probe depth minus the offset. */
-    _fseeki64(pattern_catalog, (*offset)*sizeof(Pattern), SEEK_SET);
+    fseeko(pattern_catalog, (*offset)*sizeof(Pattern), SEEK_SET);
     fread(catalog_pattern_cache, sizeof(Pattern), pattern_cache_size, pattern_catalog);
   }
   *probe_step += 1;
@@ -522,7 +524,7 @@ static int get_matching_pattern(Pattern image_pattern,
   /* Initialize offset of the beginning of the Pattern cache in the pattern catalog. */
   uint64_t offset = hash_pattern(image_pattern);
   /* Initialize cache of catalog Patterns. */
-  _fseeki64(pattern_catalog, offset*sizeof(Pattern), SEEK_SET);
+  fseeko(pattern_catalog, offset*sizeof(Pattern), SEEK_SET);
   fread(catalog_pattern_cache, sizeof(Pattern), pattern_cache_size, pattern_catalog);
   /* Iterate over catalog locations in the image Pattern's probing sequence until */
   /* a catalog location without a Pattern is found, which means no matches exist. */
