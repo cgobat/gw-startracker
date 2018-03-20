@@ -22,7 +22,7 @@ image_directory = './pics'
 # boolean for whether or not to display an annotated version
 # of the image with identified stars circled in green and
 # unmatched catalog stars circled in red
-show_solution = True
+show_solution = False
 
 # maximum fields of view of catalog patterns in degrees
 # determines approximately what image fields of view
