@@ -5,15 +5,6 @@ Test Tetra before you download it with the web demo: <a href="http://tetra.rocks
 
 
 
-##Before Run
-Install the following python packages:
-1. numpy
-2. image
-3. scipy
-
-
-
-
 ##Run Tetra on Your Personal Computer
 
 1. Create a directory (i.e. Tetra).
@@ -29,15 +20,25 @@ The first run may take a while as it needs to generate the catalog.  From then o
 
 ##Run Tetra on Raspberry Pi
 Once with Raspbian installed and running on Raspberry Pi:
-1. Install full version of Python3: https://www.python.org/downloads/source/
-2. Install following packages on the Raspberry Pi:
-(?) 2.1. Setuptools: https://pypi.python.org/pypi/setuptools#downloads
-2.2. PiCamera: https://github.com/waveform80/picamera
-2.3. Cython: https://github.com/cython/cython
-2.4. Numpy: https://github.com/numpy/numpy
-2.5. Scipy: https://github.com/scipy/scipy
+1. Install full version of Python3
+2. Install pip3
+3. Install following packages using pip3:
+3.1. Setuptools
+3.2. PiCamera
+3.3. Pillow
+3.4. Numpy
+3.5. Scipy
 
 
+Posible Errors and solutions:
+Error: libf77blas.so.3: cannot open shared object file
+Solution:  sudo apt-get install libatlas-base-dev
+
+Error: ImportError: libopenjp2.so.7
+Solution: sudo apt-get install libopenjp2-7-dev
+
+Error: ImportError: libtiff.so.5
+Solution: sudo apt-get install libtiff5 
 
 
 
