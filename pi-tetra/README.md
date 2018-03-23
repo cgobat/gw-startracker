@@ -20,24 +20,29 @@ The first run may take a while as it needs to generate the catalog.  From then o
 
 ##Run Tetra on Raspberry Pi
 Once with Raspbian installed and running on Raspberry Pi:
-1. Install full version of Python3
-2. Install pip3
-3. Install following packages using pip3:
-3.1. Setuptools
-3.2. PiCamera
-3.3. Pillow
-3.4. Numpy
-3.5. Scipy
+1. Enable Picamera:
+	- run: sudo raspi-config
+	- Select "Interfacing Options"
+	- Select "P1 Camera"
+	- Select "Yes"
+	- Exit
+2. Install full version of Python3
+3. Install pip3
+4. Install following packages using pip3:
+	- picamera
+	- pillow
+	- numpy
+	- scipy
 
 
-Posible Errors and solutions:
-Error: libf77blas.so.3: cannot open shared object file
+#Posible Errors and solutions:
+Error: "libf77blas.so.3: cannot open shared object file"
 Solution:  sudo apt-get install libatlas-base-dev
 
-Error: ImportError: libopenjp2.so.7
+Error: "ImportError: libopenjp2.so.7"
 Solution: sudo apt-get install libopenjp2-7-dev
 
-Error: ImportError: libtiff.so.5
+Error: "ImportError: libtiff.so.5"
 Solution: sudo apt-get install libtiff5 
 
 
