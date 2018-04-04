@@ -1,32 +1,135 @@
-## pi-tetra
+# -*- coding: UTF-8 -*-
 
+
+#################################
+###########	 Imports ############
+#################################
+import sys
+if sys.version_info < (3,0):
+    print("Requires Python 3.x, not Python 2.x, exiting...\n")
+    sys.exit(1)
 import time
-from picamera import PiCamera
+import glob
+import os
+from io import BytesIO
+
+
+# For profiling
+import cProfile
+import pstats
+
+# If in Raspberry Pi, use camera; else read files from a folder
+try:
+    from picamera import PiCamera
+    picamera_module = False	# TODO change to True <<<<<<<<<<<
+except ImportError:
+    picamera_module = False
+
+
+# User import
+print("Loading Tetra...")
+start_millis = int(round(time.time() * 1000))
 from tetra import *
+print("Init tetra took:" + str(int(round(time.time() * 1000)) - start_millis  ) + " ms\n")
 
 
-camera = PiCamera()
-camera.resolution = (240, 240)
-camera.start_preview()
-print("Camera ready!")
-# for image_file_name in glob.glob(image_directory + '/*'):
+
+##################################
+#### Const and Global variables	##
+##################################
+
+# Cap number of pictures for Testing
+max_pics = 5
+
+# store pics in storage
+store_pics = True
+
+
+
+#################################
+###########	 Code	#############
+#################################
+
+# If Camera Module included niit it, else open folder for read image files
+if picamera_module:
+	# Set Camera configuration
+	# these attributes are all relatively expensive to set individually, 
+	# hence setting them all upon construction is a speed optimization
+	camera = PiCamera(	resolution = (480, 480), 
+						framerate = 90, 
+						led_pin = False)
+	camera.color_effects = (128,128) # turn camera to black and white
+	image_file_name_prefix = 'camera_pics/pic_'
+	camera_res_X = camera.resolution[0]
+	camera_res_Y = camera.resolution[1]
+	print("\nCamera ready!\n")
+	# Create the in-memory buffer for store incoming pics
+	stream = BytesIO()
+	time.sleep(2)
+else:
+	# directory containing input images
+	image_directory = './pics'
+	image_list =  glob.glob(image_directory + '/*')
+	print("\nNo Camera found, reading from folder!\n")
+
+
 	
-image_file_name = 'pics/temp.jpg'
-while True:
-	start_millis = int(round(time.time() * 1000))
+def run_tetra():
+	i = 0
+	t_t = 0
+	while i < max_pics:
+		start_millis = int(round(time.time() * 1000))
 
-	camera.capture(image_file_name)
+		# For Tetra exit status
+		result = 0
 
-	print(image_file_name)
-	result = tetra(image_file_name)
-	if( type(result) == list and len(result) == 5 ):
-		print("Mismatch probability: %.4g" % result[0])
-		print("RA:   %.4f" % result[1])
-		print("DEC:  %.4f" % result[2])
-		print("ROLL: %.4f" % result[3])
-		print("FOV:  %.4f\n" % result[4])
-	else:
-  		print("Failed to determine attitude")
-	
-	print("Took " + str(int(round(time.time() * 1000)) - start_millis  ) + " ms\n")
-	time.sleep(5)
+		# If Raspberry Pi take picture, else read file
+		if picamera_module:
+			# Take a picture and store it the stream buffer
+			camera.capture(stream, format='rgb', use_video_port=True)			
+			# "Rewind" the stream to the beginning so we can read its content
+			stream.seek(0)
+			# Store image into a numpy array and convert to grayscale
+			image = np.array( Image.frombytes('RGB', (camera_res_X,camera_res_Y), stream.getvalue()).convert('L'))
+			print("Take pic_"+ str(i)+" took:" + str(int(round(time.time() * 1000)) - start_millis  ) + " ms")
+			
+			if store_pics:
+				image_file_name = image_file_name_prefix + str(i) + '.jpg'
+				result = Image.fromarray(image)
+				result.save(image_file_name)
+
+			# Call tetra
+			result = tetra(image)
+
+		else:
+			if len(image_list) == 0	:
+				break
+			image_file_name = image_list.pop()
+			print(image_file_name)
+			# Call Tetra 
+			result = tetra_from_file(image_file_name)
+		
+		if( type(result) == list and len(result) == 5 ):
+			print("Mismatch probability: %.4g" % result[0])
+			print("RA:   %.4f" % result[1])
+			print("DEC:  %.4f" % result[2])
+			print("ROLL: %.4f" % result[3])
+			print("FOV:  %.4f" % result[4])
+		else:
+	  		print("Failed to determine attitude")
+
+		t_t += int(round(time.time() * 1000)) - start_millis  
+		print("Took: t = " + str(int(round(time.time() * 1000)) - start_millis  ) + " ms\n")
+		i+=1
+
+	print("\nAverage t = " + str( t_t/max_pics))
+
+
+
+if __name__ == '__main__':
+	temp_prof_out = "{}.profile".format(__file__)
+	cProfile.run( "run_tetra()", temp_prof_out )
+	s = pstats.Stats(temp_prof_out)
+	s.strip_dirs()
+	s.sort_stats("time").print_stats(50)
+	os.remove( temp_prof_out )

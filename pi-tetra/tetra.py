@@ -15,6 +15,8 @@ import scipy.ndimage
 import scipy.optimize
 import scipy.stats
 import glob
+import time
+import threading
 
 # directory containing input images
 image_directory = './pics'
@@ -96,6 +98,8 @@ num_course_sky_map_bins = 4
 
 # constant used for randomizing hash functions
 avalanche_constant = 2654435761
+
+
   
 # converts a hash_code into an index in the hash table
 def hash_code_to_index(hash_code, bins_per_dimension, hash_table_size):
@@ -138,6 +142,7 @@ def get_nearby_stars_compressed_course(vector, radius):
           if np.dot(vector, star_table[star_id]) > np.cos(radius):
             nearby_star_ids.append(star_id)
   return nearby_star_ids
+
 
 # open the pattern catalog and fine sky map and test whether they are fully
 # generated with the following parameters and if not, regenerate them
@@ -397,20 +402,30 @@ if read_failed or str(parameters) != stored_parameters:
   np.save('compressed_course_sky_map.npy', compressed_course_sky_map)
   np.save('pattern_catalog.npy', pattern_catalog)
   parameters = open('params.txt', 'w').write(str(parameters))
-  
-# run the tetra star tracking algorithm on the given image
-def tetra(image_file_name):
+
+
+
+# run the tetra star tracking algorithm on the given image file
+def tetra_from_file(image_file_name):
   # read image from file and convert to black and white
   image = np.array(Image.open(image_file_name).convert('L'))
+  return tetra(image)
+
+
+# run the tetra star tracking algorithm on the given image
+# param image: np.array whit black and white sky night image 
+def tetra(image):
   # extract height (y) and width (x) of image
   height, width = image.shape
-
   # flatten image by subtracting median filtered image
   # clip image so size is a multiple of downsample_factor
   # note that this may shift the center of the image
   height = height - height % downsample_factor
   width = width - width % downsample_factor
   image = image[:height, :width]
+
+
+  start_millis = int(round(time.time() * 1000))
   # downsample image for median filtering
   downsampled_image = image.reshape((height//downsample_factor,downsample_factor,width//downsample_factor,downsample_factor)).mean(axis=3).mean(axis=1)
   # apply median filter to downsampled image
@@ -419,6 +434,11 @@ def tetra(image_file_name):
   upsampled_median_filtered_image = median_filtered_image.repeat(downsample_factor, axis=0).repeat(downsample_factor, axis=1)
   # subtract the minimum of the image pixel and the local median to prevent values less than 0
   normalized_image = image - np.minimum.reduce([upsampled_median_filtered_image, image])
+  
+  print("Median filter: " + str( int(round(time.time() * 1000)) - start_millis ))
+
+
+  start_millis = int(round(time.time() * 1000))
 
   # find all groups of pixels brighter than 5 sigma
   bright_pixels = zip(*np.where(normalized_image > 5 * np.std(normalized_image)))
@@ -485,6 +505,10 @@ def tetra(image_file_name):
   # sort star centroids from brightest to dimmest by comparing the total masses of their window pixels
   star_centroids.sort(key=lambda yx:-np.sum(normalized_image[ int(yx[0]-window_radius) : int(yx[0]+window_radius+1), int(yx[1]-window_radius) : int(yx[1]+window_radius+1) ]))
 
+  print("Star identification: " + str( int(round(time.time() * 1000)) - start_millis ))
+
+
+
   # compute list of (i,j,k) vectors given list of (y,x) star centroids and
   # an estimate of the image's field-of-view in the x dimension
   # by applying the pinhole camera equations
@@ -544,8 +568,7 @@ def tetra(image_file_name):
       # divide the pattern's edges by the largest edge to create dimensionless ratios for lookup in the catalog
       pattern_edge_ratios = pattern_edges[:-1] / pattern_largest_edge
       # given error of at most max_error in the edge_ratios, compute the space of hash codes to lookup in the catalog
-      hash_code_space = [range(max(low,0), min(high+1,num_catalog_bins)) for (low, high) in zip(((pattern_edge_ratios - max_error) * num_catalog_bins).astype(np.int),
-                                                                                                ((pattern_edge_ratios + max_error) * num_catalog_bins).astype(np.int))]
+      hash_code_space = [range(max(low,0), min(high+1,num_catalog_bins)) for (low, high) in zip(((pattern_edge_ratios - max_error) * num_catalog_bins).astype(np.int),((pattern_edge_ratios + max_error) * num_catalog_bins).astype(np.int))]
       # iterate over hash code space, only looking up non-duplicate codes that are in sorted order
       for hash_code in set([tuple(sorted(code)) for code in itertools.product(*hash_code_space)]):
         hash_code = tuple(hash_code)
@@ -602,7 +625,6 @@ def tetra(image_file_name):
           pattern_radii = [np.linalg.norm(star_vector - pattern_centroid) for star_vector in pattern_star_vectors]
           # use the radii to uniquely order the pattern's star vectors so they can be matched with the catalog vectors
           pattern_sorted_vectors = np.array(pattern_star_vectors)[np.argsort(pattern_radii)]
-          
           # calculate the least-squares rotation matrix from the catalog frame to the image frame
           def find_rotation_matrix(image_vectors, catalog_vectors):
             # find the covariance matrix H between the image vectors and catalog vectors
@@ -614,12 +636,10 @@ def tetra(image_file_name):
             # by flipping the sign of the third column of the rotation matrix
             rotation_matrix[:,2] *= np.linalg.det(rotation_matrix)
             return rotation_matrix
-          
           # use the pattern match to find an estimate for the image's rotation matrix
           rotation_matrix = find_rotation_matrix(pattern_sorted_vectors, catalog_sorted_vectors)
           # calculate all star vectors using the new field-of-view
           all_star_vectors = compute_vectors(star_centroids, fov)
-          
           def find_matches(all_star_vectors, rotation_matrix):
             # rotate each of the star vectors into the catalog frame by
             # using the inverse (transpose) of the tentative rotation matrix
@@ -658,12 +678,17 @@ def tetra(image_file_name):
             matches = []
             for (catalog_vector, image_vector) in matches_hash.items():
               # filter out catalog stars with multiple image star matches
-              if image_vector == "multiple matches":
+              if image_vector is "multiple matches":
                 continue
               matches.append((image_vector, np.array(catalog_vector)))
             return matches
           
+
+          start_millis = int(round(time.time() * 1000))
+
           matches = find_matches(all_star_vectors, rotation_matrix)
+  
+          print("Find_matches: " + str( int(round(time.time() * 1000)) - start_millis ))
           # calculate loose upper bound on probability of mismatch assuming random star distribution
           # find number of catalog stars appear in a circumscribed circle around the image
           image_center_vector = np.dot(rotation_matrix.T, np.array((1,0,0)))
@@ -680,8 +705,14 @@ def tetra(image_file_name):
               print ("mismatch probability: %.4g" % mismatch_probability_upper_bound)
             # recalculate the rotation matrix using the newly identified stars
             rotation_matrix = find_rotation_matrix(*zip(*matches))
+
+            start_millis = int(round(time.time() * 1000))
+
             # recalculate matched stars given new rotation matrix
             matches = find_matches(all_star_vectors, rotation_matrix)
+
+            print("Recalculate matched: " + str( int(round(time.time() * 1000)) - start_millis ))
+
             # extract right ascension, declination, and roll from rotation matrix and convert to degrees
             ra = (np.arctan2(rotation_matrix[0][1], rotation_matrix[0][0]) % (2 * np.pi)) * 180 / np.pi
             dec = np.arctan2(rotation_matrix[0][2], np.sqrt(rotation_matrix[1][2]**2 + rotation_matrix[2][2]**2)) * 180 / np.pi
