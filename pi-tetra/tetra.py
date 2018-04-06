@@ -374,7 +374,7 @@ if read_failed or str(parameters) != stored_parameters:
     # retrieve the vectors of the stars in the pattern
     vectors = np.array([star_table[star_id] for star_id in pattern])
     # calculate and sort the edges of the star pattern, which are the distances between its stars
-    edges = np.sort([np.linalg.norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(vectors, 2)])
+    edges = np.sort([norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(vectors, 2)])
     # extract the largest edge
     largest_edge = edges[-1]
     # divide the edges by the largest edge to create dimensionless ratios
@@ -408,7 +408,15 @@ if read_failed or str(parameters) != stored_parameters:
 # run the tetra star tracking algorithm on the given image file
 def tetra_from_file(image_file_name):
   # read image from file and convert to black and white
+
+  start_millis = int(round(time.time() * 1000))
+
+
   image = np.array(Image.open(image_file_name).convert('L'))
+
+  print("Load image: " + str( int(round(time.time() * 1000)) - start_millis ))
+
+
   return tetra(image)
 
 
@@ -554,7 +562,6 @@ def tetra(image):
           pattern_indices[index_to_change] = pattern_indices[index_to_change - 1] + 1
       # output the centroids corresponding to the current set of pattern indices
       yield star_centroids[pattern_indices[1:-1]]
-          
   # iterate over every combination of size pattern_size of the brightest max_pattern_checking_stars stars in the image
   for pattern_star_centroids in centroid_pattern_generator(star_centroids[:max_pattern_checking_stars], pattern_size):
     # iterate over possible fields-of-view
@@ -562,7 +569,7 @@ def tetra(image):
       # compute star vectors using an estimate for the field-of-view in the x dimension
       pattern_star_vectors = compute_vectors(pattern_star_centroids, fov_estimate)
       # calculate and sort the edges of the star pattern, which are the Euclidean distances between its stars' vectors
-      pattern_edges = np.sort([np.linalg.norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(pattern_star_vectors, 2)])
+      pattern_edges = np.sort([norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(pattern_star_vectors, 2)])
       # extract the largest edge
       pattern_largest_edge = pattern_edges[-1]
       # divide the pattern's edges by the largest edge to create dimensionless ratios for lookup in the catalog
@@ -586,11 +593,11 @@ def tetra(image):
           # find the centroid, or average position, of the star pattern
           centroid = np.mean(catalog_vectors, axis=0)
           # calculate each star's radius, or Euclidean distance from the centroid
-          radii = [np.linalg.norm(vector - centroid) for vector in catalog_vectors]
+          radii = [norm(vector - centroid) for vector in catalog_vectors]     
           # use the radii to uniquely order the catalog vectors
           catalog_sorted_vectors = catalog_vectors[np.argsort(radii)]
           # calculate and sort the edges of the star pattern, which are the distances between its stars
-          catalog_edges = np.sort([np.linalg.norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(catalog_vectors, 2)])
+          catalog_edges = np.sort([norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(catalog_vectors, 2)])
           # extract the largest edge
           catalog_largest_edge = catalog_edges[-1]
           # divide the edges by the largest edge to create dimensionless ratios
@@ -608,7 +615,7 @@ def tetra(image):
             # recalculate the pattern's star vectors given the new fov
             pattern_star_vectors = compute_vectors(pattern_star_centroids, fov)
             # recalculate the pattern's edge lengths
-            pattern_edges = np.sort([np.linalg.norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(pattern_star_vectors, 2)])
+            pattern_edges = np.sort([m_norm(np.subtract(*star_pair)) for star_pair in itertools.combinations(pattern_star_vectors, 2)])
             # return a list of errors, one for each edge
             return catalog_edges - pattern_edges
           # find the fov that minimizes the squared error, starting with the given estimate
@@ -622,7 +629,7 @@ def tetra(image):
           # find the centroid, or average position, of the star pattern
           pattern_centroid = np.mean(pattern_star_vectors, axis=0)
           # calculate each star's radius, or Euclidean distance from the centroid
-          pattern_radii = [np.linalg.norm(star_vector - pattern_centroid) for star_vector in pattern_star_vectors]
+          pattern_radii = [norm(star_vector - pattern_centroid) for star_vector in pattern_star_vectors]
           # use the radii to uniquely order the pattern's star vectors so they can be matched with the catalog vectors
           pattern_sorted_vectors = np.array(pattern_star_vectors)[np.argsort(pattern_radii)]
           # calculate the least-squares rotation matrix from the catalog frame to the image frame
@@ -682,13 +689,7 @@ def tetra(image):
                 continue
               matches.append((image_vector, np.array(catalog_vector)))
             return matches
-          
-
-          start_millis = int(round(time.time() * 1000))
-
           matches = find_matches(all_star_vectors, rotation_matrix)
-  
-          print("Find_matches: " + str( int(round(time.time() * 1000)) - start_millis ))
           # calculate loose upper bound on probability of mismatch assuming random star distribution
           # find number of catalog stars appear in a circumscribed circle around the image
           image_center_vector = np.dot(rotation_matrix.T, np.array((1,0,0)))
@@ -769,8 +770,22 @@ def tetra(image):
               color_matched = (0, 255, 0)
               draw_circles(rgb_image, matched_rotated_catalog_vectors, color_matched, circle_fidelity, circle_radius)
               rgb_image.show()
-
             # Encapsule results and return them
             return [mismatch_probability_upper_bound, ra, dec, roll, fov]
 
 
+
+
+
+
+
+from numpy.core import  asanyarray, ravel, dot, sqrt
+
+# np.linalg.norm(x, ord=None, axis=None, keepdims=False)
+def norm(x):
+    print(x)
+    return sqrt(dot(x, x))
+
+def m_norm(x):
+    x = asanyarray(x).ravel(order='K')
+    return sqrt(dot(x, x))

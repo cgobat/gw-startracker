@@ -12,7 +12,7 @@ stream = BytesIO()
 # Set Camera configuration
 # these attributes are all relatively expensive to set individually, 
 # hence setting them all upon construction is a speed optimization
-camera = PiCamera(	resolution = (480, 480), 
+camera = PiCamera(	resolution = (256, 256), 
 					framerate = 90, 
 					led_pin = False)
 
