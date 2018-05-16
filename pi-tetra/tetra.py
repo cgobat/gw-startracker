@@ -783,7 +783,6 @@ from numpy.core import  asanyarray, ravel, dot, sqrt
 
 # np.linalg.norm(x, ord=None, axis=None, keepdims=False)
 def norm(x):
-    print(x)
     return sqrt(dot(x, x))
 
 def m_norm(x):

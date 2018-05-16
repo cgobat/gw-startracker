@@ -12,10 +12,10 @@
 #define NUM_TEST 100000
 
 
-float norm(int n,const float * x,const float * y)
+double  norm(int n,const double  * x, const double  * y)
 {
   int i;
-  float s0,s1;
+  double  s0,s1;
   s0 = s1 = 0;
   for (i=n>>1;i>0;i--)
     {
@@ -28,8 +28,8 @@ float norm(int n,const float * x,const float * y)
 }
 
 
-// manual
-float m_norm(float x[3])
+// Manual
+double  m_norm(double  x[3])
 {
   return sqrtf( (x[0] * x[0]) + (x[1] * x[1]) + (x[2] * x[2]) );
 }
@@ -47,15 +47,15 @@ int main(void)
 	struct timeval t0;
 	struct timeval t1;
 	float elapsed;
-	float res;
+	double res;
 	int i;
 
-	float x[3] = {0.12645715, -0.0821628,  -0.22324085};
+	double  x[3] = { 0.12645715, -0.0821628,  -0.22324085};
 
 	// nomr()
 	gettimeofday(&t0, 0);
 	printf("\n\n100000 vect norm with norm()\n");
-	printf("norm(x) = %f \n", norm(3, x, x) );
+	printf("norm(x) = %.9f \n", norm(3, x, x) );
 	i = 0;
 	while(i < NUM_TEST)
 	{
@@ -70,7 +70,7 @@ int main(void)
 	// m_norm()
 	gettimeofday(&t0, 0);
 	printf("\n\n100000 vect norm with m_norm()\n");
-	printf("m_norm(x) = %f \n", m_norm(x) );
+	printf("m_norm(x) = %.9f \n", m_norm(x) );
 	i = 0;
 	while(i < NUM_TEST)
 	{
