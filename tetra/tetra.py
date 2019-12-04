@@ -8,13 +8,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import numpy as np
-import itertools
+import numpy as np, itertools, scipy.ndimage, scipy.optimize, scipy.stats, glob
 from PIL import Image
-import scipy.ndimage
-import scipy.optimize
-import scipy.stats
-import glob
 
 # directory containing input images
 image_directory = './pics'
@@ -157,10 +152,10 @@ try:
   star_table = np.load('star_table.npy')
   stored_parameters = open('params.txt', 'r').read()
   # if it got this far, the reads didn't fail
-  read_failed = 0
+  read_failed = False
 except:
   # loading from the files failed, so they either didn't existing or weren't complete
-  read_failed = 1
+  read_failed = True
 # there are two cases in which the catalog needs to be regenerated:
 # reading the stored files failed or the stored parameters
 # are different than those specified above
@@ -179,11 +174,11 @@ if read_failed or str(parameters) != stored_parameters:
                    ]
   
   # open BSC5 catalog file for reading
-  bsc5_file = open('BSC5', 'rb')
-  # skip first 28 header bytes
-  bsc5_file.seek(28)
-  # read BSC5 catalog into array
-  bsc5 = np.fromfile(bsc5_file, dtype=bsc5_data_type, count=STARN)
+  with open('BSC5', 'rb') as bsc5_file:
+    # skip first 28 header bytes
+    bsc5_file.seek(28)
+    # read BSC5 catalog into array
+    bsc5 = np.fromfile(bsc5_file, dtype=bsc5_data_type, count=STARN)
 
   # year to calculate catalog for
   # should be relatively close to 1950
