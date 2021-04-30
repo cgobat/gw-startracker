@@ -1,8 +1,9 @@
 # -*- coding: UTF-8 -*-
 
 
-debug = 0
-use_picamera = 0
+serial_server = False
+profiling = False
+use_picamera = False
 
 
 #################################
@@ -46,6 +47,7 @@ except ImportError:
 
 # User import
 print("Loading Tetra...")
+print("This might take a while!")
 start_millis = int(round(time.time() * 1000))
 from tetra import *
 print("Init tetra took:" + str(int(round(time.time() * 1000)) - start_millis  ) + " ms\n")
@@ -232,12 +234,15 @@ def serial_server():
 
 
 if __name__ == '__main__':
-	if debug:
+
+	if profiling == True:
 		temp_prof_out = "{}.profile".format(__file__)
 		cProfile.run( "run_tetra()", temp_prof_out )
 		s = pstats.Stats(temp_prof_out)
 		s.strip_dirs()
 		s.sort_stats("time").print_stats(50)
 		os.remove( temp_prof_out )
-	else:
+	elif serial_server == True:
 		serial_server()
+	else:
+		run_tetra()
