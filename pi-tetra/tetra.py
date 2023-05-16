@@ -17,6 +17,7 @@ import scipy.stats
 import glob
 import time
 import threading
+from numpy.core import  asanyarray, ravel, dot, sqrt
 
 # directory containing input images
 image_directory = './pics'
@@ -100,6 +101,14 @@ num_course_sky_map_bins = 4
 avalanche_constant = 2654435761
 
 
+
+# np.linalg.norm(x, ord=None, axis=None, keepdims=False)
+def norm(x):
+    return sqrt(dot(x, x))
+
+def m_norm(x):
+    x = asanyarray(x).ravel(order='K')
+    return sqrt(dot(x, x))
   
 # converts a hash_code into an index in the hash table
 def hash_code_to_index(hash_code, bins_per_dimension, hash_table_size):
@@ -685,7 +694,7 @@ def tetra(image):
             matches = []
             for (catalog_vector, image_vector) in matches_hash.items():
               # filter out catalog stars with multiple image star matches
-              if image_vector is "multiple matches":
+              if image_vector == "multiple matches":
                 continue
               matches.append((image_vector, np.array(catalog_vector)))
             return matches
@@ -772,19 +781,3 @@ def tetra(image):
               rgb_image.show()
             # Encapsule results and return them
             return [mismatch_probability_upper_bound, ra, dec, roll, fov]
-
-
-
-
-
-
-
-from numpy.core import  asanyarray, ravel, dot, sqrt
-
-# np.linalg.norm(x, ord=None, axis=None, keepdims=False)
-def norm(x):
-    return sqrt(dot(x, x))
-
-def m_norm(x):
-    x = asanyarray(x).ravel(order='K')
-    return sqrt(dot(x, x))
